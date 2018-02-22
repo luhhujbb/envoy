@@ -1,4 +1,4 @@
-(def +version+ "0.1.6")
+(def +version+ "0.1.7")
 
 (set-env!
   :source-paths #{"src"}
@@ -16,7 +16,7 @@
 
 (task-options!
   push {:ensure-branch nil}
-  pom {:project     'tolitius/envoy
+  pom {:project     'linkfluence/envoy
        :version     +version+
        :description "a gentle touch of clojure to hashicorp's consul"
        :url         "https://github.com/tolitius/envoy"
