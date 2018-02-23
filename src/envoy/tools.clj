@@ -20,7 +20,11 @@
                  (concat (map (partial link connect (key->x k))
                               (map->flat v key->x connect))
                          path)
+<<<<<<< HEAD
                  (or (sequential? v)) (conj path
+=======
+                 (sequential? v) (conj path
+>>>>>>> master
                                                  [(key->x k) (try
                                                                 (json/generate-string (vec v))
                                                                 (catch Throwable _ v))])
