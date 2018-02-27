@@ -46,10 +46,6 @@
             (catch Throwable _
              v))
       :json (try
-<<<<<<< HEAD
-                ;;default json no symbol
-=======
->>>>>>> master
                 (json/parse-string-strict v true)
                 (catch Throwable _ v))
       (deserialize v :edn)))
