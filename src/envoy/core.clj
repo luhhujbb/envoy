@@ -139,7 +139,7 @@
                                     (tools/serialize-map (get-in stored-map kpath) serializer))]
          ;;add
          (doseq [[k v] (tools/map->props to-add serializer)]
-             (put (str kv-path "/" k) (str v) (dissoc ops :serializer :update)))
+             (put (str kv-path "/" k) (str v) (dissoc ops :serializer :overwrite?)))
          ;;remove
          (doseq [[k v] (tools/map->props to-remove serializer)]
             (when (nil? (get-in to-add (tools/cpath->kpath k) nil))
@@ -150,7 +150,7 @@
   (let [kv-path (tools/without-slash kv-path)]
     (if-not overwrite?
        (doseq [[k v] (tools/map->props m serializer)]
-          (put (str kv-path "/" k) (str v) (dissoc ops :serializer :update)))
+          (put (str kv-path "/" k) (str v) (dissoc ops :serializer :overwrite?)))
        (overwrite-with kv-path m ops))))
 
 (defn copy
