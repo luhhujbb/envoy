@@ -1,4 +1,4 @@
-(defproject linkfluence/envoy "0.2.3"
+(defproject linkfluence/envoy "0.2.4"
   :description "linkfluence fork of envoy"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
