@@ -80,6 +80,7 @@
 (defn- sys->map [sys]
   (try
   (reduce (fn [m [k-path v]]
+            (log/info m [k-path v])
             (assoc-in m k-path v)) {} sys)
                 (catch Exception e
                     (log/error e sys))))
