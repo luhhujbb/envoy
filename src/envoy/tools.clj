@@ -86,7 +86,9 @@
             (catch Exception e
               (loop [k-path-tmp (butlast k-path)]
                 (if (nil? (get-in m [k-path-tmp]))
-                    (recur (butlast k-path-tmp))
+                    (if-not (= 0 (count k-path-tmp))
+                        (recur (butlast k-path-tmp))
+                        m)
                     (do
                       (assoc-in m k-path-tmp {})
                       (assoc-in m k-path v))))))) {} sys))
