@@ -9,6 +9,6 @@ build:
   stage: build
   only:
     refs:
-      - master
+      - linkfluence
   script:
   - lein with-profile repo do clean, deploy releases
