@@ -1,6 +1,7 @@
 (ns envoy.tools
   (:require [cheshire.core :as json]
             [clojure.string :as s]
+            [clojure.tools.logging :as log]
             [clojure.edn :as edn]))
 
 (defn key->prop [k]
@@ -77,8 +78,11 @@
         (map keyword $)))
 
 (defn- sys->map [sys]
+  (try
   (reduce (fn [m [k-path v]]
-            (assoc-in m k-path v)) {} sys))
+            (assoc-in m k-path v)) {} sys)
+                (catch Exception e
+                    (log/error e sys))))
 
 (defn cpath->kpath
   "consul path to key path: i.e. \"/foo/bar/baz\" to [:foo :bar :baz]"
