@@ -57,7 +57,12 @@
             (catch Throwable _
              v))
       :json (try
-                (json/parse-string-strict v true)
+                (let [parsed (json/parse-string-strict v true)
+                      splitted-els (clojure.string/split v #" ")
+                      first-el-parsed (json/parse-string-strict (first splitted-els) true)]
+                     (if (and (= parsed first-el-parsed) (not= (count splitted-els) 1))
+                        v
+                        parsed))
                 (catch Throwable _ v))
       (deserialize v :edn)))
 
