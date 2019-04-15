@@ -72,11 +72,13 @@
   "consul values are strings. str->value will convert:
   the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
   in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
+  (if (or (nil? v) (= "null" v))
+  nil
   (cond
     (re-matches #"[0-9]+" v) (Long/parseLong v)
     (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
     (re-matches #"\w+" v) v
-    :else (deserialize v deserializer)))
+    :else (deserialize v deserializer))))
 
 (defn- key->path [k level]
   (as-> k $
