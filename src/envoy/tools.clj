@@ -48,6 +48,8 @@
 
 (defn- deserialize
   [v serializer]
+  (if (or (nil? v) (= "null" v))
+    nil
   (condp = serializer
       :edn (try
             (let [parsed (read-string v)]
@@ -64,7 +66,7 @@
                         v
                         parsed))
                 (catch Throwable _ v))
-      (deserialize v :edn)))
+      (deserialize v :edn))))
 
 (defn- str->value [v & [deserializer]]
   "consul values are strings. str->value will convert:
@@ -105,18 +107,8 @@
     (key->path cpath #"/")
     []))
 
-(defn remove-nils [m]
-  (let [remove? (fn [v]
-                  (or (nil? v)
-                      (= "null" v)))]
-    (into {}
-          (remove
-            (comp remove? second)
-            m))))
-
 (defn props->map [read-from-consul & [deserializer]]
-  (->> (for [[k v] (-> (read-from-consul)
-                       remove-nils)]
+  (->> (for [[k v] (read-from-consul)]
           [(key->path k #"/")
            (str->value v deserializer)])
        sys->map))
