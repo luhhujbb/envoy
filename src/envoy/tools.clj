@@ -85,6 +85,15 @@
         (remove #{""} $)   ;; in case "/foo/bar" remove the result for the first slash
         (map keyword $)))
 
+(defn remove-nils [m]
+  (let [remove? (fn [v]
+                  (or (nil? v)
+                      (= "null" v)))]
+    (into {}
+          (remove
+            (comp remove? second)
+            m))))
+
 (defn- sys->map [sys]
     (reduce (fn [m [k-path v]]
             (try
