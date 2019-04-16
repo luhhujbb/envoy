@@ -80,12 +80,16 @@
     (re-matches #"\w+" v) v
     :else (deserialize v deserializer))))
 
-(defn- key->path [k level]
-  (as-> k $
+(defn- key->path [k level dir]
+  (let [path (as-> k $
         ;; (s/lower-case $)
         (s/split $ level)
         (remove #{""} $)   ;; in case "/foo/bar" remove the result for the first slash
-        (map keyword $)))
+        (map keyword $))]
+        (if-not dir
+            path
+            {:path path
+             :dir (= "/" (str (last path)))})))
 
 (defn remove-nils [m]
   (let [remove? (fn [v]
@@ -98,29 +102,33 @@
 
 (defn- sys->map [sys]
     (reduce (fn [m [k-path v]]
-            (try
-              (assoc-in m k-path v)
-            ;;we only keep node
-            (catch Exception e
-              (loop [k-path-tmp (butlast k-path)]
-                (if (nil? (get-in m [k-path-tmp]))
-                    (if-not (= 0 (count k-path-tmp))
-                        (recur (butlast k-path-tmp))
-                        m)
-                    (do
-                      (assoc-in m k-path-tmp {})
-                      (assoc-in m k-path v))))))) {} sys))
+                (try
+                    (let [c-value (get-in m (:path k-path))]
+                        (if (nil? c-value)
+                            (if-not (:dir k-path)
+                                (assoc-in m (:path k-path) v)
+                                m)
+                            m))
+                    (catch Exception e
+                        (loop [k-path-tmp (butlast (:path k-path) )]
+                            (if (nil? (get-in m [k-path-tmp]))
+                                (if-not (= 0 (count k-path-tmp))
+                                    (recur (butlast k-path-tmp))
+                                    m)
+                                (do
+                                    (assoc-in m k-path-tmp {})
+                                    (assoc-in m k-path v))))))) {} sys))
 
 (defn cpath->kpath
   "consul path to key path: i.e. \"/foo/bar/baz\" to [:foo :bar :baz]"
   [cpath]
   (if (seq cpath)
-    (key->path cpath #"/")
+    (key->path cpath #"/" false)
     []))
 
 (defn props->map [read-from-consul & [deserializer]]
   (->> (for [[k v] (read-from-consul)]
-          [(key->path k #"/")
+          [(key->path k #"/" true)
            (str->value v deserializer)])
        sys->map))
 
