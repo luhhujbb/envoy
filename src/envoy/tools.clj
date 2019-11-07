@@ -3,7 +3,8 @@
             [clojure.string :as s]
             [clojure.tools.logging :as log]
             [org.httpkit.client :as http]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.algo.generic.functor :as f :only [fmap]]))
 
 (defn key->prop [k]
   (-> k
@@ -15,70 +16,19 @@
   (let [to (key->prop to)]
     [(str from connect to) value]))
 
-(defn- serialize
-    [v serializer]
-    (condp = serializer
-        :edn (str (vec v))
-        :json (json/generate-string (vec v))
-        (serialize v :edn)))
-
-(defn serialize-map
-    [m & [serializer]]
-    (reduce-kv (fn [acc k v]
-        (cond
-            (map? v) (assoc acc k (serialize-map v serializer))
-            (sequential? v) (assoc acc k (serialize v serializer))
-            :else (assoc acc k (str v))))
-        {} m))
-
-(defn- map->flat [m key->x connect & [serializer]]
+(defn- map->flat [m key->x connect]
   (reduce-kv (fn [path k v]
                (cond
                  (map? v)
                  (concat (map (partial link connect (key->x k))
-                              (map->flat v key->x connect serializer))
+                              (map->flat v key->x connect))
                          path)
-                 (sequential? v) (conj path [(key->x k)
-                                             (serialize v serializer)])
-                 :else (conj path [(key->x k) v])))
+                 (string? v) (conj path [(key->x k) v])
+                 :else (throw (Exception. "Consul store only string"))))
              [] m))
 
-(defn map->props [m & [serializer]]
-  (map->flat m key->prop "/" serializer))
-
-(defn- deserialize
-  [v serializer]
-  (if (or (nil? v) (= "null" v))
-    nil
-  (condp = serializer
-      :edn (try
-            (let [parsed (read-string v)]
-                (if (symbol? parsed)
-                    v
-                    parsed))
-            (catch Throwable _
-             v))
-      :json (try
-                (let [parsed (json/parse-string-strict v true)
-                      splitted-els (clojure.string/split v #" ")
-                      first-el-parsed (json/parse-string-strict (first splitted-els) true)]
-                     (if (and (= parsed first-el-parsed) (not= (count splitted-els) 1))
-                        v
-                        parsed))
-                (catch Throwable _ v))
-      (deserialize v :edn))))
-
-(defn- str->value [v & [deserializer]]
-  "consul values are strings. str->value will convert:
-  the numbers to longs, the alphanumeric values to strings, and will use Clojure reader for the rest
-  in case reader can't read OR it reads a symbol, the value will be returned as is (a string)"
-  (if (or (nil? v) (= "null" v))
-  nil
-  (cond
-    (re-matches #"[0-9]+" v) (Long/parseLong v)
-    (re-matches #"^(true|false)$" v) (Boolean/parseBoolean v)
-    (re-matches #"\w+" v) v
-    :else (deserialize v deserializer))))
+(defn map->props [m]
+  (map->flat m key->prop "/"))
 
 (defn- key->path [k level dir]
   (let [path (as-> k $
@@ -126,10 +76,10 @@
     (key->path cpath #"/" false)
     []))
 
-(defn props->map [read-from-consul & [deserializer]]
+(defn props->map [read-from-consul]
   (->> (for [[k v] (read-from-consul)]
           [(key->path k #"/" true)
-           (str->value v deserializer)])
+           v])
        sys->map))
 
 ;; author of "deep-merge-with" is Chris Chouser: https://github.com/clojure/clojure-contrib/commit/19613025d233b5f445b1dd3460c4128f39218741
@@ -188,3 +138,24 @@
             (apply str (no-slash path))
             path))
        (clean-slash path))))
+
+(defn- fmap
+  [f m]
+  (f/fmap #(if (map? %)
+             (fmap f %)
+             (f %))
+          m))
+
+(defn pre-serialize [map serializer]
+  [map]
+  (let [serialize (condp = serializer
+                  :json json/generate-string
+                  :edn (fn [x] (str x)))]
+      (fmap serialize map)))
+
+(defn post-deserialize [map deserializer]
+  [map]
+  (let [deserialize (condp = deserializer
+                  :json (fn [x] (json/parse-string x true))
+                  :edn (fn [x] (str x)))]
+      (fmap deserialize map)))

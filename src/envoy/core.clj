@@ -5,7 +5,9 @@
             [org.httpkit.client :as http]
             [envoy.tools :as tools]
             [clojure.string :as string])
-  (:import [javax.xml.bind DatatypeConverter]))
+  (:import [java.util Base64]))
+
+(def decoder (Base64/getDecoder))
 
 (defn- recurse [path]
   (str path "?recurse"))
@@ -26,7 +28,7 @@
       index-of)))
 
 (defn- fromBase64 [s]
-  (String. (DatatypeConverter/parseBase64Binary s)))
+  (String. (.decode decoder s)))
 
 (defn- read-values
   ([resp]
@@ -116,41 +118,39 @@
     (Watcher. stop-ch))))
 
 (defn consul->map
-  [path & [{:keys [serializer offset] :or {serializer :edn} :as ops}]]
+  [path & [{:keys [offset] :as ops}]]
    (-> (partial get-all path
                         (merge
-                            (dissoc ops :serializer :offset)
+                            (dissoc ops :offset)
                             {:keywordize? false}))
-       (tools/props->map serializer)
+       (tools/props->map)
        (get-in (tools/cpath->kpath offset))))
 
 (defn- overwrite-with
-    [kv-path m & [{:keys [serializer] :or {serializer :edn} :as ops}]]
+    [kv-path m & [ops]]
     (let [[consul-url sub-path]  (string/split kv-path #"kv" 2)
           update-kv-path (str consul-url "kv")
           kpath (tools/cpath->kpath sub-path)
           stored-map (reduce (fn [acc [k v]]
                                (merge acc (consul->map
-                                            (str kv-path "/" (name k))
-                                            {:serializer serializer})))
+                                            (str kv-path "/" (name k)))))
                                {} m)
-         ;;to update correctly seq we need to pre-serialize map
-          [to-add to-remove _] (diff (tools/serialize-map m serializer)
-                                    (tools/serialize-map (get-in stored-map kpath) serializer))]
+         ;;to update correctly we take diff
+          [to-add to-remove _] (diff m (get-in stored-map kpath))]
          ;;add
-         (doseq [[k v] (tools/map->props to-add serializer)]
-             (put (str kv-path "/" k) (str v) (dissoc ops :serializer :overwrite?)))
+         (doseq [[k v] (tools/map->props to-add)]
+             (put (str kv-path "/" k) (str v)))
          ;;remove
-         (doseq [[k v] (tools/map->props to-remove serializer)]
+         (doseq [[k v] (tools/map->props to-remove)]
             (when (nil? (get-in to-add (tools/cpath->kpath k) nil))
                 @(http/delete (str kv-path "/" k))))))
 
 (defn map->consul
-  [kv-path m & [{:keys [serializer overwrite?] :or {serializer :edn overwrite? false} :as ops}]]
+  [kv-path m & [{:keys [overwrite?] :or {overwrite? false} :as ops}]]
   (let [kv-path (tools/without-slash kv-path)]
     (if-not overwrite?
-       (doseq [[k v] (tools/map->props m serializer)]
-          (put (str kv-path "/" k) (str v) (dissoc ops :serializer :overwrite?)))
+       (doseq [[k v] (tools/map->props m)]
+          (put (str kv-path "/" k) (str v) (dissoc ops :overwrite?)))
        (overwrite-with kv-path m ops))))
 
 (defn copy

@@ -1,4 +1,4 @@
-(defproject linkfluence/envoy "0.2.10"
+(defproject luhhujbb/envoy "0.3.0"
   :description "linkfluence fork of envoy"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -8,8 +8,9 @@
                  [org.slf4j/slf4j-log4j12 "1.7.5"]
                  [log4j "1.2.17"]
                  [org.clojure/tools.logging "0.2.6"]
-                 [cheshire "5.8.0"]
-                 [org.clojure/core.async "0.3.443"]
-                 [http-kit "2.2.0"]]
+                 [cheshire "5.9.0"]
+                 [org.clojure/core.async "0.4.500"]
+                 [org.clojure/algo.generic "0.1.3"]
+                 [http-kit "2.3.0"]]
   :repositories {"Linkfluence repo" "http://artifactory-i-7ab5159d.infra.aws.rtgi.eu:8081/artifactory/libs-release-local"}
   :aot :all)

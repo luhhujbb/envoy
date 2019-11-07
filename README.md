@@ -6,7 +6,11 @@ _[source](https://en.wikipedia.org/wiki/Diplomatic_rank#Historical_ranks.2C_1815
 
 <hr/>
 
-[![Clojars Project](https://clojars.org/tolitius/envoy/latest-version.svg)](http://clojars.org/tolitius/envoy)
+Main change from upstream project is that we complely remove serialization, it has to be handled in external code.
+
+There are too many ways to convert map to key values, so I think it has to be handled by application and not in this library
+
+[![Clojars Project](https://clojars.org/luhhujbb/envoy/latest-version.svg)](http://clojars.org/luhhujbb/envoy)
 
 - [How to play](#how-to-play)
 - [Map to Consul](#map-to-consul)
