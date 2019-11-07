@@ -10,6 +10,11 @@ Main change from upstream project is that we complely remove serialization, it h
 
 There are too many ways to convert map to key values, so I think it has to be handled by application and not in this library
 
+Nevertheless helper functions are provided in tools :
+
+* pre-serialize supporting both json & edn
+* post-deserialize supporting both json & edn
+
 [![Clojars Project](https://clojars.org/luhhujbb/envoy/latest-version.svg)](http://clojars.org/luhhujbb/envoy)
 
 - [How to play](#how-to-play)
@@ -359,36 +364,12 @@ or any other Consul options.
 
 ### Serializer
 
-By default envoy will serialize and deserialize data in EDN format. Which usually is quite transparent, since EDN map gets written and read from Consul as a nested key value structure which is just that: a map.
+No serialization is provided by default since consul store only string, you must provide nested map with string as values.
 
-There are cases where values are sequences: i.e. `{:hosts ["foo1.com", "foo2.com"]}` in which case they will still be serialized and deserialized as EDN by default, however it might be harder to consume these EDN sequences from languages other than Clojure which do not speak EDN natively.
+Two helpers are provided in tools namespace:
 
-While there are libraries for other languages that support EDN
-
-* Java: https://github.com/danboykis/trava
-* Go: https://github.com/go-edn/edn
-* Ruby: https://github.com/relevance/edn-ruby
-* Python: https://github.com/swaroopch/edn_format
-* etc.
-
-envoy would allow to specify other serializers via a `:serializer` option:
-
-```clojure
-boot.user=> (def config {:system {:hosts ["foo1.com", "foo2.com", {:a 42}]}})
-#'boot.user/config
-
-boot.user=> (envoy/map->consul "http://dev-server:8500/v1/kv" config {:serializer :json})
-nil
-
-boot.user=> (envoy/consul->map "http://dev-server:8500/v1/kv/system" {:serializer :json})
-{:system {:hosts ["foo1.com" "foo2.com" {:a 42}]}}
-```
-
-If `{:serializer :json}` option is provided sequence values will be stored in Consul as JSON:
-
-<p align="center"><img src="doc/img/json-serialization.png"></p>
-
-which can be consumed from other languages without the need to know about EDN.
+* pre-serialize which support both json and edn converting everything that is not a map into json/edn string
+* post-deserialize which typically does the reverse
 
 ## License
 

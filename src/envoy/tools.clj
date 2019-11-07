@@ -157,5 +157,5 @@
   [map]
   (let [deserialize (condp = deserializer
                   :json (fn [x] (json/parse-string x true))
-                  :edn (fn [x] (str x)))]
+                  :edn (fn [x] (edn/read-string x)))]
       (fmap deserialize map)))
