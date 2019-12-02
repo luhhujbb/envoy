@@ -3,6 +3,7 @@
             [clojure.data :refer [diff]]
             [clojure.core.async :refer [go-loop go <! >! >!! alt! chan]]
             [org.httpkit.client :as http]
+            [clojure.tools.logging :as log]
             [envoy.tools :as tools]
             [clojure.string :as string])
   (:import [java.util Base64]))

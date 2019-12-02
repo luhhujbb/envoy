@@ -24,7 +24,8 @@
                               (map->flat v key->x connect))
                          path)
                  (string? v) (conj path [(key->x k) v])
-                 :else (throw (Exception. "Consul store only string"))))
+                 (nil? v) (conj path [(key->x k) v])
+                 :else (throw (Exception. "Consul store only string or nil"))))
              [] m))
 
 (defn map->props [m]
@@ -50,15 +51,28 @@
             (comp remove? second)
             m))))
 
+(defn- conflict-key-path
+  [k-path]
+  (let [lk (last k-path)
+        blk-path (butlast k-path)]
+        (vec (conj blk-path (keyword (str "__key__" (name lk)))))))
+
 (defn- sys->map [sys]
-    (reduce (fn [m [k-path v]]
+ (reduce (fn [m [k-path v]]
                 (try
                     (let [c-value (get-in m (:path k-path))]
                         (if (nil? c-value)
                             (if-not (:dir k-path)
                                 (assoc-in m (:path k-path) v)
-                                m)
-                            m))
+                                (assoc-in m (:path k-path) {}))
+                            ;;manage key/dir conflicts
+                            (if (map? c-value)
+                              ;;there is a dir
+                              (assoc-in m (conflict-key-path (:path k-path)) v)
+                              ;;there is a value
+                              (do
+                                (assoc-in m (conflict-key-path (:path k-path)) c-value)
+                                (assoc-in m (:path k-path) {})))))
                     (catch Exception e
                         (loop [k-path-tmp (butlast (:path k-path) )]
                             (if (nil? (get-in m [k-path-tmp]))
